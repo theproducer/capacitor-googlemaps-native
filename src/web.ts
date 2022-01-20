@@ -1,6 +1,6 @@
 import { WebPlugin } from '@capacitor/core';
 
-import { CapacitorGoogleMapsPlugin } from './definitions';
+import { Bounds, CapacitorGoogleMapsPlugin } from './definitions';
 import { LatLng } from './types/common/latlng.interface';
 import { CircleOptions } from './types/shapes/circle.interface';
 import { PolygonOptions } from './types/shapes/polygon.interface';
@@ -13,7 +13,9 @@ export class CapacitorGoogleMapsWeb extends WebPlugin implements CapacitorGoogle
       platforms: ['web'],
     });
   }
-
+  updateBounds(_options: { cropFrame: Bounds; newMapBounds: Bounds; }): Promise<void> {
+    throw new Error('Method not implemented.');
+  }  
   create(_options: { width: number; height: number; x: number; y: number; latitude?: number; longitude?: number; zoom?: number; liteMode?: boolean }): Promise<any> {
     throw new Error('Method not implemented.');
   }

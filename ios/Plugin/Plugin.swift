@@ -3,6 +3,41 @@ import Capacitor
 import GoogleMaps
 
 
+
+struct BoundsCoord {
+    let x1: CGFloat
+    let y1: CGFloat
+    let x2: CGFloat
+    let y2: CGFloat
+    
+    init(_ jsObject: JSObject) {
+        let x = jsObject["x"] as? Float ?? 0
+        let y = jsObject["y"] as? Float ?? 0
+        let width = jsObject["width"] as? Float ?? 0
+        let height = jsObject["height"] as? Float ?? 0
+        
+        self.x1 = CGFloat(x)
+        self.y1 = CGFloat(y)
+        self.x2 = CGFloat(x + width)
+        self.y2 = CGFloat(y + height)
+    }
+    
+    init (x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) {
+        self.x1 = x
+        self.y1 = y
+        self.x2 = CGFloat(x + width)
+        self.y2 = CGFloat(y + height)
+    }
+    
+    func height() -> CGFloat {
+        return y2 - y1
+    }
+    
+    func width() -> CGFloat {
+        return x2 - x1
+    }
+}
+
 @objc(CapacitorGoogleMaps)
 public class CapacitorGoogleMaps: CAPPlugin, GMSMapViewDelegate, GMSPanoramaViewDelegate {
 
@@ -12,6 +47,37 @@ public class CapacitorGoogleMaps: CAPPlugin, GMSMapViewDelegate, GMSPanoramaView
     var DEFAULT_ZOOM: Double = 12.0;
 
     var hashMap = [Int : GMSMarker]();
+    
+    func isInFrame(frame: BoundsCoord, map: BoundsCoord) -> Bool {
+        return map.x1 >= frame.x1 &&
+            map.y1 >= frame.y1 &&
+            map.x2 <= frame.x2 &&
+            map.y2 <= frame.y2
+    }
+    
+    func getFrameOverflowBounds(frame: BoundsCoord, map: BoundsCoord) -> [BoundsCoord] {
+        var bounds: [BoundsCoord] = []
+        
+        // get top overflow
+        if map.y1 < frame.y1 {
+            let height = frame.y1 - map.y1
+            let width = map.width()
+            
+            let b = BoundsCoord(x: 0, y: 0, width: width, height: height)
+            bounds.append(b)
+        }
+        
+        // get bottom overflow
+        if map.y2 > frame.y2 {
+            let height = map.y2 - frame.y2
+            let width = map.width()
+            
+            let b = BoundsCoord(x: 0, y: map.height() - height, width: width, height: height)
+            bounds.append(b)
+        }
+        
+        return bounds
+    }
 
     @objc func initialize(_ call: CAPPluginCall) {
 
@@ -26,6 +92,59 @@ public class CapacitorGoogleMaps: CAPPlugin, GMSMapViewDelegate, GMSPanoramaView
         call.resolve([
             "initialized": true
         ])
+    }
+    
+    @objc func updateBounds(_ call: CAPPluginCall) {
+        guard let mapViewController = self.mapViewController else {
+            call.reject("Map is not ready")
+            return
+        }
+        
+        guard let cropFrameBoundsObj = call.getObject("cropFrame") else {
+            return
+        }
+        
+        guard let mapFrameBoundsObj = call.getObject("newMapBounds") else {
+            return
+        }
+        
+        let cropFrame = BoundsCoord(cropFrameBoundsObj)
+        let newMapFrame = BoundsCoord(mapFrameBoundsObj)
+        
+        var maskBounds: [BoundsCoord] = []
+        
+        if !isInFrame(frame: cropFrame, map: newMapFrame) {
+            print ("map is now out of bounds")
+            maskBounds.append(contentsOf: getFrameOverflowBounds(frame: cropFrame, map: newMapFrame))
+        }
+        
+        
+        DispatchQueue.main.async {
+            var newFrame = self.mapViewController.view.bounds
+            newFrame.origin.x = newMapFrame.x1
+            newFrame.origin.y = newMapFrame.y1
+            
+            
+            mapViewController.view.frame = newFrame
+            mapViewController.view.layer.mask = nil
+            
+            
+            if maskBounds.count > 0 {
+                let maskLayer = CAShapeLayer()
+                let path = CGMutablePath()
+                path.addRect(mapViewController.view.bounds)
+                maskBounds.forEach { bounds in
+                    path.addRect(CGRect(x: bounds.x1, y: bounds.y1, width: bounds.width(), height: bounds.height()))
+                }
+                maskLayer.path = path
+                maskLayer.fillRule = .evenOdd
+                mapViewController.view.layer.mask = maskLayer
+            }
+            
+            
+            mapViewController.view.layoutIfNeeded()
+        }
+        
     }
 
     @objc func create(_ call: CAPPluginCall) {
@@ -50,6 +169,7 @@ public class CapacitorGoogleMaps: CAPPlugin, GMSMapViewDelegate, GMSPanoramaView
             self.bridge?.viewController?.view.addSubview(self.mapViewController.view)
             self.mapViewController.GMapView.delegate = self
             self.notifyListeners("onMapReady", data: nil)
+        
         }
         call.resolve([
             "created": true
@@ -98,6 +218,7 @@ public class CapacitorGoogleMaps: CAPPlugin, GMSMapViewDelegate, GMSPanoramaView
 
                 // set metadata to marker
                 marker.userData = metadata
+
 
                 // get auto-generated id of the just added marker,
                 // put this marker into a hashmap with the corresponding id,
@@ -472,6 +593,7 @@ public class CapacitorGoogleMaps: CAPPlugin, GMSMapViewDelegate, GMSPanoramaView
         let radius = call.getDouble("radius") ?? 0.0
 
         let center = call.getObject("center")
+        
 
         let coordinates = CLLocationCoordinate2D(latitude: center?["latitude"] as! CLLocationDegrees, longitude: center?["longitude"] as! CLLocationDegrees)
 

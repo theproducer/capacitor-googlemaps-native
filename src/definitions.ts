@@ -1,9 +1,16 @@
-import { PluginListenerHandle } from '@capacitor/core';
+import { PluginListenerHandle } from "@capacitor/core";
 
-import { LatLng } from './types/common/latlng.interface';
-import { PolylineOptions } from './types/shapes/polyline.interface';
-import { PolygonOptions } from './types/shapes/polygon.interface';
-import { CircleOptions } from './types/shapes/circle.interface';
+import { LatLng } from "./types/common/latlng.interface";
+import { PolylineOptions } from "./types/shapes/polyline.interface";
+import { PolygonOptions } from "./types/shapes/polygon.interface";
+import { CircleOptions } from "./types/shapes/circle.interface";
+
+export interface Bounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 export interface CapacitorGoogleMapsPlugin {
   /** Creates map view and displays it */
@@ -17,6 +24,11 @@ export interface CapacitorGoogleMapsPlugin {
     zoom?: number;
     liteMode?: boolean;
   }): Promise<any>;
+
+  updateBounds(options: {
+    cropFrame: Bounds;
+    newMapBounds: Bounds;
+  }): Promise<void>;
 
   /** [iOS only] Initializes GoogleMaps with API key */
   initialize(options: { key: string }): Promise<any>;
@@ -128,31 +140,31 @@ export interface CapacitorGoogleMapsPlugin {
   setOnMyLocationButtonClickListener(): Promise<any>;
 
   addListener(
-    eventName: 'didTap',
+    eventName: "didTap",
     listenerFunc: (results: any) => void
   ): PluginListenerHandle;
   addListener(
-    eventName: 'didBeginDragging',
+    eventName: "didBeginDragging",
     listenerFunc: (results: any) => void
   ): PluginListenerHandle;
   addListener(
-    eventName: 'didEndDragging',
+    eventName: "didEndDragging",
     listenerFunc: (results: any) => void
   ): PluginListenerHandle;
   addListener(
-    eventName: 'didTapAt',
+    eventName: "didTapAt",
     listenerFunc: (results: any) => void
   ): PluginListenerHandle;
   addListener(
-    eventName: 'didTapPOIWithPlaceID',
+    eventName: "didTapPOIWithPlaceID",
     listenerFunc: (results: any) => void
   ): PluginListenerHandle;
   addListener(
-    eventName: 'didChange',
+    eventName: "didChange",
     listenerFunc: (results: any) => void
   ): PluginListenerHandle;
   addListener(
-    eventName: 'onMapReady',
+    eventName: "onMapReady",
     listenerFunc: (results: any) => void
   ): PluginListenerHandle;
 }
