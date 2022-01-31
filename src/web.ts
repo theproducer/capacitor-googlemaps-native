@@ -13,6 +13,9 @@ export class CapacitorGoogleMapsWeb extends WebPlugin implements CapacitorGoogle
       platforms: ['web'],
     });
   }
+  updateOverlayBounds(_options: { bounds: Bounds; overlayBounds: Bounds[] }): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
   updateBounds(_options: { cropFrame: Bounds; newMapBounds: Bounds; }): Promise<void> {
     throw new Error('Method not implemented.');
   }  

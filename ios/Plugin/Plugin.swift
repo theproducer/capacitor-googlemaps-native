@@ -47,6 +47,7 @@ public class CapacitorGoogleMaps: CAPPlugin, GMSMapViewDelegate, GMSPanoramaView
     var DEFAULT_ZOOM: Double = 12.0;
 
     var hashMap = [Int : GMSMarker]();
+    var overlayBounds: [BoundsCoord] = []
     
     func isInFrame(frame: BoundsCoord, map: BoundsCoord) -> Bool {
         return map.x1 >= frame.x1 &&
@@ -94,6 +95,19 @@ public class CapacitorGoogleMaps: CAPPlugin, GMSMapViewDelegate, GMSPanoramaView
         ])
     }
     
+    @objc func updateOverlayBounds(_ call: CAPPluginCall) {
+        self.overlayBounds = []
+        
+        guard let boundsArray = call.getArray("overlayBounds") else {
+            return
+        }
+        
+        boundsArray.forEach { boundsObj in
+            let bounds = BoundsCoord(boundsObj as! JSObject)
+            self.overlayBounds.append(bounds)
+        }
+    }
+    
     @objc func updateBounds(_ call: CAPPluginCall) {
         guard let mapViewController = self.mapViewController else {
             call.reject("Map is not ready")
@@ -111,7 +125,17 @@ public class CapacitorGoogleMaps: CAPPlugin, GMSMapViewDelegate, GMSPanoramaView
         let cropFrame = BoundsCoord(cropFrameBoundsObj)
         let newMapFrame = BoundsCoord(mapFrameBoundsObj)
         
-        var maskBounds: [BoundsCoord] = []
+        var maskBounds: [BoundsCoord] = self.overlayBounds.filter({ b in
+            return b.width() == 75
+        }).map { b in
+            print("\(newMapFrame.x1), \(newMapFrame.y1)")
+            print("\(b.x1), \(b.y1)")
+            print("\n")
+            let relativeX = b.x1 - newMapFrame.x1
+            let relativeY = b.y1 - newMapFrame.y1
+            print("\(relativeX), \(relativeY)")
+            return BoundsCoord(x: relativeX, y: relativeY, width: b.width(), height: b.height())
+        }
         
         if !isInFrame(frame: cropFrame, map: newMapFrame) {
             print ("map is now out of bounds")

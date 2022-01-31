@@ -30,6 +30,11 @@ export interface CapacitorGoogleMapsPlugin {
     newMapBounds: Bounds;
   }): Promise<void>;
 
+  updateOverlayBounds(options: {
+    overlayBounds: Bounds[];
+    bounds: Bounds;
+  }): Promise<void>;
+
   /** [iOS only] Initializes GoogleMaps with API key */
   initialize(options: { key: string }): Promise<any>;
 
